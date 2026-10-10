@@ -49,6 +49,7 @@ fn sidecar() -> std::io::Result<()> {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(|s| s.as_str()) {
+        Some("manifest") => println!("{}", g::manifest()),
         Some("report") => print!("{}", g::report(args.get(1).map(|s| s == "all").unwrap_or(false))),
         Some("reset") => {
             let _ = std::fs::remove_dir_all(g::gray_home().join("usage").join("live"));
