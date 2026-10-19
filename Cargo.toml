@@ -1,6 +1,6 @@
 [package]
 name = "gray-usage"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "/usage: per-session token+cost accounting from the session store plus provider balance endpoints"
