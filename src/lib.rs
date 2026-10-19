@@ -282,15 +282,51 @@ fn auth_token(b: &Balance) -> Option<String> {
     None
 }
 
+fn private_header_file(header: &str) -> Option<(std::path::PathBuf, String)> {
+    use std::io::Write;
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let path = std::env::temp_dir().join(format!("gray-hdr-{}-{nanos:x}", std::process::id()));
+    let mut o = std::fs::OpenOptions::new();
+    o.create_new(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        o.mode(0o600);
+    }
+    match o.open(&path).and_then(|mut f| f.write_all(header.as_bytes())) {
+        Ok(()) => Some((path.clone(), format!("@{}", path.display()))),
+        Err(_) => {
+            let _ = std::fs::remove_file(&path);
+            None
+        }
+    }
+}
+
 /// Curl the endpoint (network stays a subprocess per the porting guide)
 /// and surface any balance-shaped fields from the reply.
 fn fetch_balance(name: &str, b: &Balance) -> String {
     let mut cmd = Command::new("curl");
     cmd.args(["-sS", "-m", "8", "-o", "-", "-w", "\n%{http_code}", &b.url]);
+    let mut hdr_file = None;
     if let Some(t) = auth_token(b) {
-        cmd.args(["-H", &format!("Authorization: Bearer {t}")]);
+        let h = format!("Authorization: Bearer {t}");
+        let arg = match private_header_file(&h) {
+            Some((p, a)) => {
+                hdr_file = Some(p);
+                a
+            }
+            None => h,
+        };
+        cmd.args(["-H", &arg]);
     }
-    let out = match cmd.output() {
+    let res = cmd.output();
+    if let Some(p) = &hdr_file {
+        let _ = std::fs::remove_file(p);
+    }
+    let out = match res {
         Ok(o) => o,
         Err(e) => return format!("{name:<14} no curl ({e})"),
     };
