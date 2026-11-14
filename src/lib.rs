@@ -469,7 +469,7 @@ pub fn manifest() -> Value {
         "tools": [],
         // /usage is shadowed by gray's builtin /usage in the REPL; /tokens
         // is the unshadowed interactive alias to the same report.
-        "description": "tokens,",
+        "description": "tokens, cost and balance per session",
         "commands": ["/usage", "/tokens"],
         "completion": ["all", "reset"],
         "hooks": [],
