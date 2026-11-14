@@ -480,6 +480,11 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    fn home_guard() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     fn fixture_home(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("usage-test-{}-{tag}", std::process::id()));
         let sess = dir.join("sessions");
@@ -494,6 +499,7 @@ mod tests {
 
     #[test]
     fn scans_sessions_and_costs() {
+        let _guard = home_guard();
         let dir = fixture_home("scan");
         let (rows, total) = scan_sessions(None);
         assert_eq!(total, 1);
@@ -507,6 +513,7 @@ mod tests {
 
     #[test]
     fn turn_end_accumulates_live() {
+        let _guard = home_guard();
         let dir = fixture_home("live");
         record_turn("sid-1", &json!({"input_tokens": 50, "output_tokens": 5,
             "cache_read_input_tokens": 30, "cache_write_input_tokens": 4}));
